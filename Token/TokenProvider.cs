@@ -10,6 +10,7 @@ namespace ChatAppAPI.Token;
 
 public class TokenProvider(IConfiguration configuration)
 {
+    
     public string Create(string username, string password)
     {
         string secretKey = Environment.GetEnvironmentVariable("JWT_SECRET");

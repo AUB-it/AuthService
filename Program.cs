@@ -7,6 +7,7 @@ using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
 
+// Vault endpoint
 var EndPoint = "https://localhost:8201/";
 var httpClientHandler = new HttpClientHandler();
 httpClientHandler.ServerCertificateCustomValidationCallback =
@@ -28,9 +29,16 @@ IVaultClient vaultClient = new VaultClient(vaultClientSettings);
 string jwtSecretString = "";
 try
 {
-    Secret<SecretData> jwtSecret = await vaultClient.V1.Secrets.KeyValue.V2
-        .ReadSecretAsync(path: "authSecrets", mountPoint: "secret");
-    jwtSecretString = (string)jwtSecret.Data.Data["JWT_SECRET"];
+    var jwtSecret = await vaultClient.V1.Secrets.KeyValue.V2
+        .ReadSecretAsync(path: "auth", mountPoint: "secret");
+
+    if (!jwtSecret.Data.Data.TryGetValue("JWT_SECRET", out var rawValue))
+        throw new Exception("JWT_SECRET key not found in Vault secret");
+
+    jwtSecretString = rawValue?.ToString();
+
+    if (string.IsNullOrWhiteSpace(jwtSecretString))
+        throw new Exception("JWT_SECRET is null or empty");
 }
 catch (Exception e)
 {
@@ -38,6 +46,8 @@ catch (Exception e)
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration["Jwt:JwtSecret"] = jwtSecretString;
 
 // Add services to the container.
 
@@ -55,7 +65,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         o.TokenValidationParameters = new TokenValidationParameters()
         {
             IssuerSigningKey =
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretString)),
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSecret"])),
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             ClockSkew = TimeSpan.Zero,
