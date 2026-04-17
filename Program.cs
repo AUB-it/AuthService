@@ -2,12 +2,20 @@ using System.Text;
 using ChatAppAPI.Token;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using NLog;
+using NLog.Web;
 using VaultSharp;
 using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
 
+var logger = NLog.LogManager.Setup().LoadConfigurationFromAppSettings()
+    .GetCurrentClassLogger();
+
+logger.Debug("Starting Authservice");
+
 var EndPoint = "https://localhost:8201/";
+logger.Debug("Connecting to Hashicorp Vault on: {0}", EndPoint);
 var httpClientHandler = new HttpClientHandler();
 httpClientHandler.ServerCertificateCustomValidationCallback =
     (message, cert, chain, sslPolicyErrors) => { return true; };
@@ -24,16 +32,22 @@ var vaultClientSettings = new VaultClientSettings(EndPoint, authMethod)
             BaseAddress = new Uri(EndPoint)
         }
 };
+logger.Debug("Getting JWT secret from vault");
 IVaultClient vaultClient = new VaultClient(vaultClientSettings);
 string jwtSecretString = "";
 try
 {
     Secret<SecretData> jwtSecret = await vaultClient.V1.Secrets.KeyValue.V2
-        .ReadSecretAsync(path: "authSecrets", mountPoint: "secret");
-    jwtSecretString = (string)jwtSecret.Data.Data["JWT_SECRET"];
+        .ReadSecretAsync(path: "auth", mountPoint: "secret");
+    jwtSecretString = jwtSecret.Data.Data["JWT_SECRET"].ToString();
+    if (string.IsNullOrWhiteSpace(jwtSecretString))
+        throw new NullReferenceException("JWT_SECRET not found");
+    Console.WriteLine(jwtSecretString);
+    Environment.SetEnvironmentVariable("JWT_SECRET", jwtSecretString);
 }
 catch (Exception e)
 {
+    logger.Error($"{e.InnerException.Message}");
     Console.WriteLine("Noget gik galt: " + e.InnerException.Message);
 }
 
@@ -61,6 +75,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero,
         };
     });
+
+builder.Logging.ClearProviders();
+builder.Host.UseNLog();
 
 var app = builder.Build();
 
