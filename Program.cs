@@ -1,5 +1,6 @@
 using System.Text;
-using ChatAppAPI.Token;
+using AuthService.Token;
+using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using NLog;
@@ -9,12 +10,14 @@ using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
 
+Env.Load();
+
 var logger = NLog.LogManager.Setup().LoadConfigurationFromAppSettings()
     .GetCurrentClassLogger();
 
 logger.Debug("Starting Authservice");
 
-var EndPoint = "https://localhost:8201/";
+var EndPoint = Environment.GetEnvironmentVariable("VAULT_URL") ?? "https://localhost:8201/";;
 logger.Debug("Connecting to Hashicorp Vault on: {0}", EndPoint);
 var httpClientHandler = new HttpClientHandler();
 httpClientHandler.ServerCertificateCustomValidationCallback =

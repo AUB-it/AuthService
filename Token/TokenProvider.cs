@@ -7,7 +7,7 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using JwtRegisteredClaimNames = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames;
 
-namespace ChatAppAPI.Token;
+namespace AuthService.Token;
 
 public class TokenProvider(IConfiguration configuration)
 {

@@ -1,5 +1,5 @@
 using AuthService.Models;
-using ChatAppAPI.Token;
+using AuthService.Token;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.Controllers;
