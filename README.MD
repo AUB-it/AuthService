@@ -1,0 +1,1 @@
+Henter JWT secret fra vault
